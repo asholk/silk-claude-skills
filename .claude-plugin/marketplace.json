@@ -1,0 +1,42 @@
+{
+  "name": "silk-claude-skills",
+  "owner": {
+    "name": "asholk"
+  },
+  "metadata": {
+    "description": "Скилы Claude Code для разработки, анализа кода и концептов (на русском)",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "silk-dev",
+      "description": "Разработка с субагентами: быстрая доработка, разработка по лучшим практикам, поэтапная разработка, предложения по улучшению",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./dorabotay",
+        "./razrabotay",
+        "./staged-development",
+        "./predlozhi"
+      ]
+    },
+    {
+      "name": "silk-concept",
+      "description": "Концепт идеи: три предложения и мини-сайт с лендингами и иллюстрациями",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./concept"
+      ]
+    },
+    {
+      "name": "silk-obsidian",
+      "description": "Стайлгайд Obsidian для плагинов, тем и документации",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./obsidian-style"
+      ]
+    }
+  ]
+}
