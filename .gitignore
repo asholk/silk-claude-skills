@@ -1,0 +1,5 @@
+# Встроенные скилы Anthropic, синхронизируются автоматически
+synced/
+__pycache__/
+*.pyc
+tgf-kadr/
