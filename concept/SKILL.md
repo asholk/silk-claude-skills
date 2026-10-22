@@ -8,6 +8,8 @@ argument-hint: <идея, продукт или задача для концеп
 
 Запрос пользователя: **$ARGUMENTS**
 
+> При запуске субагентов и Codex следуй скилу `optimum` (§2 модели, §3 промпт, §7 Codex); если он не установлен — модели указаны ниже.
+
 Ты координатор. Идеи ищут два независимых исследователя — субагент Claude и Codex. Ты ставишь задачу, отбираешь лучшее, формируешь три предложения, заказываешь иллюстрации и сам собираешь сайт.
 
 Файлы скила:
@@ -34,16 +36,15 @@ argument-hint: <идея, продукт или задача для концеп
 
 Запусти обоих **в одном сообщении**, оба в фоне.
 
-- **Claude** — `Agent` с `subagent_type: general-purpose`, `run_in_background: true`, `model` и `effort` — по таблице ролей optimum §2; промпт: прочитать бриф из файла и выполнить, веб-поиск через `ToolSearch "select:WebSearch,WebFetch"`.
-- **Codex** — GPT-6-Astra, усилие high, только чтение, с веб-поиском:
+- **Claude** — `Agent` с `subagent_type: general-purpose`, `run_in_background: true`, `model` и `effort` — по таблице ролей optimum §2 (без optimum — `sonnet` `high`); промпт: прочитать бриф из файла и выполнить, веб-поиск через `ToolSearch "select:WebSearch,WebFetch"`.
+- **Codex** — GPT-6-Astra, усилие high, только чтение, с веб-поиском; запуск — по шаблону optimum §7, если он установлен. Автономная команда (флаг `--search` — верхнего уровня, стоит **до** `exec`; через `Bash` с `run_in_background: true`, таймаут не меньше 20 минут):
 
   ```bash
   S="<scratchpad>"
-  codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only \
-    -C "<рабочая папка>" -o "$S/concept-codex.md" - < "$S/concept-brief.md" > "$S/concept-codex.log" 2>&1
+  codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only     -C "<рабочая папка>" -o "$S/concept-codex.md" - < "$S/concept-brief.md" > "$S/concept-codex.log" 2>&1
   ```
 
-  `--search` — флаг верхнего уровня, стоит **до** `exec`. Через `Bash` с `run_in_background: true`, таймаут не меньше 20 минут; результат — `concept-codex.md`.
+  Промпт — бриф `concept-brief.md`, результат — `concept-codex.md`.
 
 Коротко сообщи пользователю, что исследование запущено, и дождись уведомлений — сам ту же тему не исследуй. Если Codex не найден, упал или вернул пустой ответ — один раз скажи об этом и продолжай с Claude; если упал субагент — продолжай с Codex.
 
@@ -135,3 +136,4 @@ Concept/<slug>/
 2. Предложения с решающим отличием каждого — по строке (при исключении §3а укажи фактическое число и причину ограничения): `N. Название — positioning в одну фразу`.
 3. Рекомендация: какое сильнее и почему, одной-двумя фразами; главный риск, который проверить первым.
 4. Путь к сайту: `Concept/<slug>/index.html`.
+5. Модели: исследователь Claude — <модель, effort>; Codex — <модель, effort / не запускался>; иллюстрации — Codex image_gen.
