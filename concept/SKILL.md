@@ -41,7 +41,7 @@ argument-hint: <идея, продукт или задача для концеп
 
   ```bash
   S="<scratchpad>"
-  codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only     -C "<рабочая папка>" -o "$S/concept-codex.md" - < "$S/concept-brief.md" > "$S/concept-codex.log" 2>&1
+  codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only -C "<рабочая папка>" -o "$S/concept-codex.md" - < "$S/concept-brief.md" > "$S/concept-codex.log" 2>&1
   ```
 
   Промпт — бриф `concept-brief.md`, результат — `concept-codex.md`.

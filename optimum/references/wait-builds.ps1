@@ -2,13 +2,13 @@
 # Exit codes: 0 - confirmed no builds; 2 - failed to list processes; 3 - timeout reached.
 # Example: powershell -NoProfile -File <path>\wait-builds.ps1 -ExtraNames node,cargo
 param(
-  [string[]]$ExtraNames = @(),   # extra project build tools (process names without .exe)
+  [string[]]$ExtraNames = @(),   # extra project build tools; 'node,cargo' via -File is split by comma
   [int]$IntervalSeconds = 30,    # poll interval
   [int]$TimeoutSeconds = 0       # 0 = wait without limit
 )
 
 $names = @('UnrealBuildTool','MSBuild','cl','link','lld-link','xgConsole','BuildConsole','AutomationTool','ninja','cmake','gradle','xcodebuild') +
-  @($ExtraNames | ForEach-Object { "$_".Trim() -replace '\.exe$', '' } | Where-Object { $_ })
+  @($ExtraNames | ForEach-Object { "$_" -split ',' } | ForEach-Object { $_.Trim() -replace '\.exe$', '' } | Where-Object { $_ })
 $deadline = if ($TimeoutSeconds -gt 0) { (Get-Date).AddSeconds($TimeoutSeconds) } else { $null }
 
 while ($true) {

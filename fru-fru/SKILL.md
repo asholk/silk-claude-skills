@@ -48,7 +48,13 @@ argument-hint: <тема для исчерпывающего перебора в
 Запусти обоих **в одном сообщении**, оба в фоне.
 
 - **Claude** — `Agent` с `subagent_type: general-purpose`, `run_in_background: true`, `model` и `effort` — по таблице ролей optimum §2 (без optimum — `sonnet` `high`), промпт — бриф с его частью матрицы. Для широкой темы он сам может разбить поиск на части.
-- **Codex** — запуск по шаблону optimum §7. Специфика: модель `gpt-6-astra`, effort `high`, песочница только чтение, с веб-поиском (`--search`), `-C "<корень проекта>"`, `-o "<scratchpad>/frufru-codex.md"`, промпт — бриф с частью матрицы для Codex; результат читай из `frufru-codex.md`.
+- **Codex** — запуск по шаблону optimum §7. Специфика: модель `gpt-6-astra`, effort `high`, песочница только чтение, с веб-поиском (`--search`), `-C "<корень проекта>"`, `-o "<scratchpad>/frufru-codex.md"`, промпт — бриф с частью матрицы для Codex; результат читай из `frufru-codex.md`. Без optimum (флаг `--search` — **до** `exec`; через `Bash` с `run_in_background: true`, таймаут не меньше 20 минут):
+
+  ```bash
+  codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only     -C "<корень проекта>" -o "<scratchpad>/frufru-codex.md" - < "<scratchpad>/frufru-brief-codex.md"
+  ```
+
+  Бриф для Codex сохрани в `frufru-brief-codex.md`.
 
 Пока аналитики работают, сам ту же тему не исследуй — дождись уведомлений о завершении.
 
