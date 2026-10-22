@@ -1,130 +1,135 @@
 ---
 name: optimum
-description: Оптимум — правила экономного и качественного выполнения задач агентами Claude по рекомендациям Anthropic: выбор модели и effort (Haiku / Sonnet / Opus / Fable), когда делегировать субагентам, Codex или fork, шаблон промпта, кэш, дешёвые проверки качества. Используй, когда пользователь пишет «оптимум», «экономно», «оптимально», «оптимизированно», «эффективно и качественно», «сэкономь токены», «дешевле», «бюджет», «кэш», «какую модель», «какой effort», вызывает /optimum, просит выбрать модели для субагентов или сократить расход; а также как надстройку к оркестрирующим скиллам (staged-development, fru-fru, razrabotay, dorabotay, predlozhi, concept) при запуске любых субагентов. Не для оптимизации производительности самого приложения.
+description: Optimum — rules for cost-efficient, high-quality task execution by Claude agents, based on Anthropic's recommendations - choosing model and effort (Haiku / Sonnet / Opus / Fable), when to delegate to subagents, Codex or fork, a prompt template, caching, cheap quality checks. Use when the user writes «оптимум», «экономно», «оптимально», «оптимизированно», «эффективно и качественно», «сэкономь токены», «дешевле», «бюджет», «кэш», «какую модель», «какой effort», invokes /optimum, asks to choose models for subagents or to cut usage; also as an add-on to orchestrating skills (staged-development, fru-fru, razrabotay, dorabotay, predlozhi, concept) whenever any subagents are launched. Not for optimizing the performance of the application itself.
 ---
 
-# Оптимум
+# Optimum
 
-Цель — **цена за успешно выполненную задачу**, а не за запрос: дешёвый агент, которому нужны переделки, обходится дороже. Сначала бесплатные рычаги (контекст, промпт, параллелизм, проверки), потом effort, и только потом смена модели. Подробности и источники — `references/anthropic-notes.md` (читай, только если нужно обоснование).
+## Language
+- Think, reason, plan and write internal notes, briefs and subagent/Codex prompts in English.
+- Reply to the user in Russian: chat messages, questions, progress updates, reports and tables. Files the user will read (reports, sites, docs, commit messages) also stay in Russian unless the project's own conventions say otherwise.
+- When delegating, tell subagents and Codex to think in English; their results come back to you, and you present them to the user in Russian.
 
-## 1. Сначала — нужен ли агент вообще
+Goal: minimize **cost per successfully completed task**, not per request — a cheap agent that needs rework costs more. Use the free levers first (context, prompt, parallelism, checks), then effort, and only then switch models. Details and sources — `references/anthropic-notes.md` (read only when you need justification).
 
-- Задача описывается одним предложением, затрагивает 1–2 файла, известен файл/символ → делай сам, без субагента и без плана.
-- Последовательная цепочка с общим контекстом, правки одного файла, частые уточнения → один исполнитель (сам или один субагент), а не рой.
-- Делегируй, когда: (а) побочная работа нагенерирует много ненужного основному контексту (поиск, логи, чтение документации); (б) есть **независимые** части, которые можно делать параллельно; (в) нужен свежий взгляд (ревью, верификация); (г) объём не помещается в одно окно.
-- Мульти-агентность стоит ~×15 токенов чата — оправдана только ценной и хорошо распараллеливаемой работой.
-- Нужно независимое мнение или экономия лимитов Claude → Codex (§7).
-- Свежий агент / продолжение / fork: независимое ревью — свежий агент; связанные исправления — продолжение того же агента (`SendMessage`); работе нужна история разговора — `subagent_type: "fork"` (дешевле за счёт общего кэша, но `model`/`effort` игнорируются; параллельные fork по одним файлам — только с `isolation: "worktree"`).
+## 1. First — is an agent needed at all
 
-## 2. Модель и effort под тип задачи
+- The task fits in one sentence, touches 1–2 files, the file/symbol is known → do it yourself, no subagent and no plan.
+- A sequential chain with shared context, edits to one file, frequent clarifications → one executor (yourself or one subagent), not a swarm.
+- Delegate when: (a) side work would generate a lot of output useless to the main context (search, logs, reading docs); (b) there are **independent** parts that can run in parallel; (c) a fresh look is needed (review, verification); (d) the volume does not fit in one window.
+- Multi-agent work costs ~×15 the tokens of chat — justified only for valuable, well-parallelizable work.
+- Need an independent opinion or to save Claude limits → Codex (§7).
+- Fresh agent / continuation / fork: independent review — fresh agent; related fixes — continue the same agent (`SendMessage`); work needs the conversation history — `subagent_type: "fork"` (cheaper thanks to the shared cache, but `model`/`effort` are ignored; parallel forks on the same files — only with `isolation: "worktree"`).
 
-Параметры `Agent`: `model` (`haiku` | `sonnet` | `opus` | `fable`) и `effort` (`low` | `medium` | `high` | `xhigh` | `max`). Этот скилл **явно разрешает** задавать `effort` по таблице. `model` указывай при **каждом** вызове: без него берётся модель сессии (часто Fable), а встроенный Explore при сессии Fable на Anthropic API/подписке работает на Opus.
+## 2. Model and effort by task type
 
-| Тип задачи | model | effort | Почему |
+`Agent` parameters: `model` (`haiku` | `sonnet` | `opus` | `fable`) and `effort` (`low` | `medium` | `high` | `xhigh` | `max`). This skill **explicitly authorizes** setting `effort` per the table. Set `model` on **every** call: without it the session model is used (often Fable), and the built-in Explore under a Fable session on the Anthropic API/subscription runs on Opus.
+
+| Task type | model | effort | Why |
 |---|---|---|---|
-| Разведка кода, поиск файлов/символов, «где это» | `haiku` (Explore) | medium (low — узкий вопрос) | read-only, ответ — пути и выводы; low — только для 1 вопроса и ≤10 вызовов |
-| Механика: массовые проверяемые преобразования, генерация данных по образцу, переименования, сбор списков, форматирование | `haiku` | medium | high-volume и проверяемо валидатором/тестом |
-| Суммаризация, классификация, извлечение из документов | `haiku` | medium | прямое назначение Haiku |
-| Тексты, статьи, документация, контент | `sonnet` | high | Sonnet — content creation; качество текста важнее цены |
-| Обычный код по ясному ТЗ, вёрстка, интеграция, тесты | `sonnet` | medium | «Sonnet handles most coding tasks well and costs less than Opus» |
-| Сложный код: алгоритмы, графика/шейдеры, движки, отладка, производительность | `opus` | high | high — для краевых случаев и багов; xhigh — для задач > 30 мин |
-| Архитектура, план, API, развилки решений | `opus` | high | «Reserve Opus for complex architectural decisions» |
-| Ревью кода | `opus` (корректность/безопасность) или `sonnet` (стиль, простые диффы) | medium–high | свежий контекст, read-only; только корректность и требования |
-| План и ревью внутри `staged-development`, `razrabotay`, `dorabotay`, аналитик Claude в `predlozhi` (когда работу делает Claude, а не Codex) | `fable` | high | требование пользователя; важнее строк выше |
-| Проверка фактов, LLM-as-judge | `sonnet` | medium | один вызов с рубрикой: оценка 0–1 + pass/fail |
-| Не справился Opus на xhigh / многочасовая автономная задача | `fable` | high | эскалация только по факту неудачи; Fable ≈ ×2.5 дороже Opus за токен, ≈ ×5 за задачу |
+| Code reconnaissance, finding files/symbols, "where is it" | `haiku` (Explore) | medium (low — narrow question) | read-only, answer is paths and conclusions; low — only for 1 question and ≤10 calls |
+| Mechanics: bulk verifiable transformations, generating data from a sample, renames, collecting lists, formatting | `haiku` | medium | high-volume and verifiable by a validator/test |
+| Summarization, classification, extraction from documents | `haiku` | medium | Haiku's direct purpose |
+| Texts, articles, documentation, content | `sonnet` | high | Sonnet — content creation; text quality matters more than price |
+| Ordinary code from a clear spec, layout, integration, tests | `sonnet` | medium | «Sonnet handles most coding tasks well and costs less than Opus» |
+| Complex code: algorithms, graphics/shaders, engines, debugging, performance | `opus` | high | high — for edge cases and bugs; xhigh — for tasks > 30 min |
+| Architecture, plan, API, decision forks | `opus` | high | «Reserve Opus for complex architectural decisions» |
+| Code review | `opus` (correctness/security) or `sonnet` (style, simple diffs) | medium–high | fresh context, read-only; correctness and requirements only |
+| Plan and review inside `staged-development`, `razrabotay`, `dorabotay`, the Claude analyst in `predlozhi` (when Claude does the work, not Codex) | `fable` | high | user requirement; overrides the rows above |
+| Fact-checking, LLM-as-judge | `sonnet` | medium | one call with a rubric: score 0–1 + pass/fail |
+| Opus on xhigh failed / multi-hour autonomous task | `fable` | high | escalate only after an actual failure; Fable ≈ ×2.5 Opus per token, ≈ ×5 per task |
 
-Роли в оркестрирующих скилах (`model` и `effort` берутся отсюда, если скил их не задаёт):
+Roles in orchestrating skills (`model` and `effort` come from here unless the skill sets them):
 
-| Роль | model | effort |
+| Role | model | effort |
 |---|---|---|
-| Исполнитель кода (`dorabotay` / `razrabotay` / `staged-development`) по ясному ТЗ | `sonnet` | medium |
-| Исполнитель кода, сложная задача | `opus` | high |
-| Исследователи в `fru-fru` / `concept` (субагент Claude) | `sonnet` | high |
-| Explore в фазе 0 | `haiku` | medium |
-| План, ревью, аналитик `predlozhi` | `fable` | high |
+| Code executor (`dorabotay` / `razrabotay` / `staged-development`) from a clear spec | `sonnet` | medium |
+| Code executor, complex task | `opus` | high |
+| Researchers in `fru-fru` / `concept` (Claude subagent) | `sonnet` | high |
+| Explore in phase 0 | `haiku` | medium |
+| Plan, review, `predlozhi` analyst | `fable` | high |
 
-Приоритет: явный выбор пользователя > правило конкретного скила > таблицы optimum > модель сессии.
+Priority: explicit user choice > the specific skill's rule > optimum tables > session model.
 
-Правила:
-- **Effort раньше модели, но сначала диагноз.** Не хватило контекста → уточни промпт/контекст; не хватило тщательности → подними effort; не хватило возможностей модели → смени модель. Если результат избыточен/медленный — сначала понизь effort.
-- **Два прохода:** пакет задач прогони на дешёвом уровне, упавшие повтори на старшем effort/модели (по Anthropic ≈ −40 % при том же качестве). Уровень выбирай по самым трудным ~10 % задач, а не по медиане.
-- `max` — почти никогда (убывающая отдача, «overthinking»).
-- Haiku: по умолчанию `medium`; `low` может пропустить проверку — давай исполняемую проверку в промпте. Не давай Haiku контекст > 100K токенов (дороже за токен).
-- `fable` вне строки «План и ревью…» — только с явным обоснованием. Fable: ≈ ×2.5 к Opus за токен ($10/$50 против $4/$20), ≈ ×5 за решённую задачу (Opus medium ≈ Fable high по качеству); в зависимости от плана может списываться из usage credits, а не из лимитов плана.
+Rules:
+- **Effort before model, but diagnose first.** Missing context → refine the prompt/context; missing thoroughness → raise effort; missing model capability → switch model. If the result is excessive/slow — lower effort first.
+- **Two passes:** run a batch of tasks at a cheap level, retry the failed ones at a higher effort/model (per Anthropic ≈ −40 % at the same quality). Pick the level by the hardest ~10 % of tasks, not the median.
+- `max` — almost never (diminishing returns, "overthinking").
+- Haiku: `medium` by default; `low` may skip verification — put an executable check in the prompt. Don't give Haiku context > 100K tokens (more expensive per token).
+- `fable` outside the "Plan and review…" row — only with explicit justification. Fable: ≈ ×2.5 Opus per token ($10/$50 vs $4/$20), ≈ ×5 per solved task (Opus medium ≈ Fable high in quality); depending on the plan it may be billed from usage credits rather than plan limits.
 
-## 3. Промпт делегирования (шаблон)
+## 3. Delegation prompt (template)
 
-Свежий субагент не видит разговор. Промпт короткий, но полный:
+A fresh subagent does not see the conversation. Keep the prompt short but complete:
 
 ```
-Цель: <что должно работать/быть готово> · Критерий готовности: <проверяемо>.
-Контекст: <2–5 строк, которых нет в коде; абсолютные пути>.
-Можно менять: <точный список файлов>. Не трогать: <остальное / файлы соседей>.
-Читай: <файлы и строки>; не читай целиком: <большие файлы>.
-Бюджет: ~<N> вызовов инструментов / <N> файлов, включая дочерних агентов; одну неудачную попытку повторяй ≤ 2 раз, затем остановись и верни частичный отчёт: что сделано, что осталось, почему. Исчерпание бюджета — не «готово».
-Проверка: <команда: сборка/валидатор/аудит>; приложи команду, exit code и итог (только ошибки).
-Ответ: ≤ <15–40> строк — файлы, что сделано, результат проверки, открытые вопросы. Большие артефакты — в указанный файл, если запись разрешена; если read-only — полный результат сообщением (можно длиннее нормы).
+Goal: <what must work/be done> · Done criterion: <verifiable>.
+Context: <2–5 lines not in the code; absolute paths>.
+May change: <exact list of files>. Do not touch: <everything else / neighbors' files>.
+Read: <files and lines>; do not read whole: <large files>.
+Budget: ~<N> tool calls / <N> files, including child agents; retry a failed attempt ≤ 2 times, then stop and return a partial report: what is done, what remains, why. Exhausting the budget is not "done".
+Check: <command: build/validator/audit>; attach the command, exit code and summary (errors only).
+Answer: ≤ <15–40> lines — files, what was done, check result, open questions. Large artifacts — to the specified file if writing is allowed; if read-only — the full result in the message (may exceed the limit).
 ```
 
-- Общие длинные правила (контракты, стиль) — **в файл-бриф**, а в промпт — ссылку на него: так промпты коротки, бриф читается один раз на агента.
-- Не дублируй работу: если поиск отдан агенту — сам его не повторяй.
-- Масштаб: простой факт — 1 агент, 3–10 вызовов; сравнение — 2–4 агента; крупная работа — много агентов с непересекающимися зонами.
-- Вложенность — один уровень: субагент не плодит своих, если это не оговорено. Explore/Plan не получают CLAUDE.md — нужные соглашения проекта повторяй в промпте.
+- Shared long rules (contracts, style) go **into a brief file**, and the prompt links to it: prompts stay short, and each agent reads the brief once.
+- Don't duplicate work: if a search is delegated to an agent, don't repeat it yourself.
+- Scale: simple fact — 1 agent, 3–10 calls; comparison — 2–4 agents; large work — many agents with non-overlapping zones.
+- Nesting — one level: a subagent does not spawn its own unless stated. Explore/Plan do not get CLAUDE.md — repeat the needed project conventions in the prompt.
 
-## 4. Параллелизм и контекст оркестратора
+## 4. Parallelism and orchestrator context
 
-- Независимые агенты — одним сообщением, в фоне. Задачи независимы, только если нет общего файла, общего контракта/публичного API и общего ресурса (одна сборка, одна БД, один порт); иначе — последовательно или `isolation: "worktree"` (он не снимает конкуренцию сборок и БД). Интеграцию и общую сборку отдавай одному исполнителю.
-- Ограничивай одновременно активных агентов (ориентир ≤ 12–16), чтобы не упираться в лимиты и не переполнять свой контекст отчётами.
-- Не читай транскрипты агентов; проверяй результат по факту (git diff --stat, валидатор, тест), а не по их словам.
-- Длинные выводы команд фильтруй (`| tail`, `grep -E "FAIL|ERROR"`), но сохраняй команду, exit code и итог проверки: пустой отфильтрованный вывод не доказывает успех.
-- Файлы данных генерируй скриптом, а не пиши построчно в контексте, если это механика.
+- Independent agents — in one message, in the background. Tasks are independent only if there is no shared file, no shared contract/public API and no shared resource (one build, one DB, one port); otherwise — sequentially or `isolation: "worktree"` (it does not remove contention for builds and DBs). Give integration and the shared build to a single executor.
+- Limit simultaneously active agents (guideline ≤ 12–16) to avoid hitting limits and flooding your context with reports.
+- Don't read agent transcripts; verify the result by facts (git diff --stat, validator, test), not by their words.
+- Filter long command output (`| tail`, `grep -E "FAIL|ERROR"`), but keep the command, exit code and check summary: empty filtered output does not prove success.
+- Generate data files with a script rather than writing them line by line in context, if it is mechanical.
 
-**Сборка** — перед любой сборкой дождись чужих сборок скриптом `references/wait-builds.ps1` (путь от папки скила, обычно `~/.claude/skills/optimum/references/wait-builds.ps1`). Запуск фоном (`run_in_background`, таймаут до 60 мин): `powershell -NoProfile -File "<папка optimum>/references/wait-builds.ps1" [-ExtraNames node,cargo]`.
-- exit 0 — сборок нет, запускай свою; 2 — процессы проверить не удалось (не считать за «сборок нет», сообщи пользователю); 3 — таймаут.
-- Чужие процессы не завершай. Если своя сборка упала из-за параллельной — дождись и повтори, код не меняй.
-- Unreal: мешает только открытый редактор того же проекта (Live Coding) — попроси пользователя закрыть.
-- Скрипт недоступен — проверь процессы вручную: `Get-CimInstance Win32_Process` по тем же именам.
+**Build** — before any build, wait for other builds with the script `references/wait-builds.ps1` (path relative to the skill folder, usually `~/.claude/skills/optimum/references/wait-builds.ps1`). Run in the background (`run_in_background`, timeout up to 60 min): `powershell -NoProfile -File "<optimum folder>/references/wait-builds.ps1" [-ExtraNames node,cargo]`.
+- exit 0 — no builds, start yours; 2 — processes could not be checked (do not treat as "no builds", tell the user); 3 — timeout.
+- Don't kill other processes. If your build failed because of a parallel one — wait and retry, don't change the code.
+- Unreal: only an open editor of the same project (Live Coding) interferes — ask the user to close it.
+- Script unavailable — check processes manually: `Get-CimInstance Win32_Process` by the same names.
 
-**Кэш** (держи контекст оркестратора маленьким):
-- У субагентов TTL кэша 5 мин. У главного разговора — 1 ч на подписке в пределах плана, 5 мин при usage credits или API-ключе.
-- Ожидание фоновых агентов дольше TTL → следующий ход оркестратора идёт без кэша.
-- Смена модели или набора инструментов ломает кэш; смена MCP — только без tool search. Смена effort на моделях 5.5 / Fable 5.1 кэш не ломает (на API-ключе/подписке).
+**Cache** (keep the orchestrator context small):
+- Subagents have a 5-min cache TTL. The main conversation — 1 h on a subscription within the plan, 5 min with usage credits or an API key.
+- Waiting for background agents longer than the TTL → the orchestrator's next turn runs without cache.
+- Changing the model or tool set breaks the cache; changing MCP — only without tool search. Changing effort on 5.5 models / Fable 5.1 does not break the cache (on API key/subscription).
 
-## 5. Качество при экономии — от дешёвого к дорогому
+## 5. Quality while saving — from cheap to expensive
 
-1. Детерминированные проверки: сборка, `node --check`, валидатор, тесты, аудит, сравнение с эталоном.
-2. Доказательства, а не заявления: агент прикладывает вывод проверки (только ошибки/итог).
-3. Визуальные результаты — скриншот/PNG, который агент сам открывает и оценивает.
-4. Независимый ревьюер со свежим контекстом и узким мандатом (корректность и требования, без вкусовщины).
-5. LLM-judge с рубрикой — только где нет детерминированной проверки.
-При понижении модели/effort — проверь на 2–3 задачах, прежде чем раскатывать на все.
+1. Deterministic checks: build, `node --check`, validator, tests, audit, comparison with a reference.
+2. Evidence, not claims: the agent attaches the check output (errors/summary only).
+3. Visual results — a screenshot/PNG the agent opens and evaluates itself.
+4. An independent reviewer with fresh context and a narrow mandate (correctness and requirements, no matters of taste).
+5. LLM-judge with a rubric — only where there is no deterministic check.
+When lowering model/effort — test on 2–3 tasks before rolling out to all.
 
-## 6. Анти-паттерны
+## 6. Anti-patterns
 
-- Субагент на мелочь; «зоопарк» узких агентов.
-- «Исследуй всё» без границ и бюджета.
-- Всё на Opus/Fable по умолчанию; `max` по умолчанию; `fable` без обоснования вне строки плана/ревью (≈ ×5 за задачу).
-- Подробные отчёты агентов и сырые логи в основной контекст.
-- Ревьюер, обязанный «найти проблемы»; исправление каждого замечания.
-- «Выглядит готово» без проверки.
-- Повторные поправки в загрязнённом контексте вместо нового чёткого промпта.
+- A subagent for a trifle; a "zoo" of narrow agents.
+- "Explore everything" without bounds and budget.
+- Everything on Opus/Fable by default; `max` by default; `fable` without justification outside the plan/review row (≈ ×5 per task).
+- Detailed agent reports and raw logs in the main context.
+- A reviewer obliged to "find problems"; fixing every remark.
+- "Looks done" without verification.
+- Repeated corrections in a polluted context instead of a new clear prompt.
 
-## 7. Codex как второй исполнитель
+## 7. Codex as a second executor
 
-- Выбирай Codex вместо субагента Claude, когда нужно независимое мнение или надо не тратить лимиты Claude. Один вопрос обоим — только если нужна независимость.
-- Анализ/ревью — всегда `-s read-only` и `-o <файл>`; читай только итог из файла. `--search` — флаг верхнего уровня, стоит **до** `exec`.
-- `model_reasoning_effort` (`low` / `medium` / `high` / `xhigh`) — по таблице §2.
-- Запуск через `Bash` с `run_in_background: true`, таймаут ≥ 20 мин.
-- Не найден, упал, пустой ответ или лимит — один раз скажи об этом; если субагент Claude по той же задаче уже запущен — продолжай с ним, иначе запусти субагента с моделью роли: план/ревью/аналитик — `fable` `high`, прочие — по таблице ролей §2.
+- Choose Codex over a Claude subagent when you need an independent opinion or must not spend Claude limits. Ask both the same question only if independence is needed.
+- Analysis/review — always `-s read-only` and `-o <file>`; read only the final result from the file. `--search` is a top-level flag and goes **before** `exec`.
+- `model_reasoning_effort` (`low` / `medium` / `high` / `xhigh`) — per the §2 table.
+- Run via `Bash` with `run_in_background: true`, timeout ≥ 20 min.
+- Not found, crashed, empty answer or limit hit — say so once; if a Claude subagent for the same task is already running — continue with it, otherwise launch a subagent with the role's model: plan/review/analyst — `fable` `high`, others — per the §2 role table.
 
 ```bash
 codex --search exec --skip-git-repo-check -m gpt-6-astra -c model_reasoning_effort=high -s read-only \
-  -C "<корень проекта>" -o "<scratchpad>/<файл>.md" - <<'EOF'
-<промпт>
+  -C "<project root>" -o "<scratchpad>/<file>.md" - <<'EOF'
+<prompt>
 EOF
 ```
 
-## Как применять
+## How to apply
 
-Перед каждым запуском субагента (в том числе внутри других скиллов) мысленно пройди: нужен ли агент (§1; Claude, Codex или fork) → тип задачи → `model` + `effort` (§2) → промпт по шаблону и короткий ответ (§3) → какая дешёвая проверка подтвердит результат (§5). В отчёте пользователю при больших запусках одной строкой укажи раскладку моделей (например, «статьи — Sonnet high, демо — Opus high, разведка — Haiku medium»).
+Before every subagent launch (including inside other skills), run through: is an agent needed (§1; Claude, Codex or fork) → task type → `model` + `effort` (§2) → prompt per the template and a short answer (§3) → which cheap check will confirm the result (§5). For large launches, state the model layout in one line of the report to the user (in Russian, e.g., «статьи — Sonnet high, демо — Opus high, разведка — Haiku medium»).

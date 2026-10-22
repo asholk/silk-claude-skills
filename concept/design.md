@@ -1,96 +1,103 @@
-# Оформление концепта: справочник
+# Concept design: reference
 
-Лучшие практики подачи идей: Amazon PR/FAQ, concept board «insight → benefit → reason to believe», positioning statement Мура, JTBD job stories, раскадровки NN/g, структура лендингов 2024–2026, консистентные AI-иллюстрации. Цифры здесь эвристики, а не законы.
+## Language
+- Think, reason, plan and write internal notes, briefs and subagent/Codex prompts in English.
+- Reply to the user in Russian: chat messages, questions, progress updates, reports and tables. Files the user will read (reports, sites, docs, commit messages) also stay in Russian unless the project's own conventions say otherwise.
+- When delegating, tell subagents and Codex to think in English; their results come back to you, and you present them to the user in Russian.
 
-## 1. Каркас каждого предложения (скрытые поля)
+Best practices for presenting ideas: Amazon PR/FAQ, the concept board "insight → benefit → reason to believe", Moore's positioning statement, JTBD job stories, NN/g storyboards, landing page structure 2024–2026, consistent AI illustrations. The numbers here are heuristics, not laws.
 
-Заполни для каждого из трёх предложений **одинаковые** поля: из них строятся лендинг и честное сравнение на главной.
+The site's visible text is in the language of the request (normally Russian); the Russian labels and headings quoted below are what the site shows.
 
-| Поле | Формула |
+## 1. Skeleton of each offer (hidden fields)
+
+Fill in the **same** fields for each of the three offers: the landing page and an honest comparison on the home page are built from them.
+
+| Field | Formula |
 |---|---|
-| **Positioning** | «Для [кого], у кого [боль], [название] — это [категория], которая [ключевая польза]. В отличие от [альтернатива], [главное отличие]». Это инструмент ясности, а не слоган. |
-| **Заголовок** | до 10 слов, результат для пользователя, а не название фичи |
-| **Подзаголовок** | 1–2 предложения: кто, что получает, как |
-| **Job story** | «Когда [ситуация], я хочу [мотивация], чтобы [результат]» |
-| **Insight** | конфликт клиента его словами (одна-две фразы) |
-| **Benefit** | 3 пользы как результаты (не больше: длинный концепт размывает послание) |
-| **Reason to believe** | механизм, данные, аналоги, эксперт — почему это сработает |
-| **Why now** | что делает идею возможной или нужной именно сейчас |
-| **Альтернативы** | как задачу решают сейчас (2–3 варианта) |
-| **Главный риск** и **что проверить первым** | гипотеза + метрика успеха |
-| **Модель** | цена, формат, монетизация |
+| **Positioning** | "For [who], who has [pain], [name] is a [category] that [key benefit]. Unlike [alternative], [main difference]". It is a clarity tool, not a slogan. |
+| **Headline** | up to 10 words, an outcome for the user, not a feature name |
+| **Subheadline** | 1–2 sentences: who, what they get, how |
+| **Job story** | "When [situation], I want [motivation], so that [outcome]" |
+| **Insight** | the customer's conflict in their own words (one or two sentences) |
+| **Benefit** | 3 benefits as outcomes (no more: a long concept dilutes the message) |
+| **Reason to believe** | mechanism, data, analogues, expert — why it will work |
+| **Why now** | what makes the idea possible or needed right now |
+| **Alternatives** | how the problem is solved today (2–3 options) |
+| **Main risk** and **what to test first** | hypothesis + success metric |
+| **Model** | price, format, monetization |
 
-Также заполни паспорт различий по `SKILL.md` §3а. Одинаковый каркас полей нужен для сравнения; содержание должно показывать разные механики, сценарии и компромиссы.
+Also fill in the difference passport per `SKILL.md` §3a. The identical field skeleton is for comparison; the content must show different mechanics, scenarios and trade-offs.
 
-Тест 5 секунд: человек, не знающий идею, по первому экрану отвечает «что это, для кого, что делать дальше». Если нет — переписать заголовок.
+5-second test: a person unfamiliar with the idea can answer "what is it, who is it for, what do I do next" from the first screen. If not, rewrite the headline.
 
-## 2. Структура лендинга
+## 2. Landing page structure
 
-1. **Hero** — заголовок, подзаголовок, hero-иллюстрация, **одна** CTA.
-2. **Коротко о сути (TL;DR)** — полоса из трёх карточек «Проблема · Решение · Почему сейчас» по одной фразе + positioning одной строкой под ней.
-3. **Инсайт** — job story крупно + 2–3 боли; схема «до / после».
-4. **Польза** — 3 пользы, каждая «боль → как снимаем» (value map).
-5. **Как это работает** — схема 3 шага со стрелками (SVG).
-6. **Сценарий** — раскадровка из 2–3 AI-кадров с подписями (персонаж с именем, конкретная ситуация) или таймлиния «день с продуктом».
-7. **Почему сработает (RTB)** — механизм, аналоги, данные; схема экосистемы, если участников несколько.
-8. **Сравнение с альтернативами** — матрица 2×2 или таблица «мы / как сейчас / аналог».
-9. **Риски и вопросы** — 5–8 возражений голосом пользователя в `<details>` + честный блок «главный риск / что проверить первым».
-10. **Финальная CTA** — повтор обещания + переход к соседнему предложению.
+1. **Hero** — headline, subheadline, hero illustration, **one** CTA.
+2. **«Коротко о сути» (TL;DR)** — a strip of three cards «Проблема · Решение · Почему сейчас», one sentence each, + positioning in one line below it.
+3. **Insight** — the job story in large type + 2–3 pains; a "before / after" diagram.
+4. **Benefit** — 3 benefits, each "pain → how we remove it" (value map).
+5. **How it works** — a 3-step diagram with arrows (SVG).
+6. **Scenario** — a storyboard of 2–3 AI frames with captions (a named character, a concrete situation) or a "day with the product" timeline.
+7. **Why it will work (RTB)** — mechanism, analogues, data; an ecosystem diagram if there are several participants.
+8. **Comparison with alternatives** — a 2×2 matrix or a "us / today / analogue" table.
+9. **Risks and questions** — 5–8 objections in the user's voice in `<details>` + an honest "main risk / what to test first" block.
+10. **Final CTA** — repeat the promise + a link to the neighboring offer.
 
-Заголовки секций — выводы («Утро без крика за три недели»), а не ярлыки («Возможности»). Одна мысль на секцию. Доказательство — рядом с утверждением. Отзывов у концепта нет: возможная цитата пользователя помечается «сценарий».
+Section headings are conclusions («Утро без крика за три недели» — "A morning without shouting in three weeks"), not labels («Возможности» — "Features"). One idea per section. Evidence sits next to the claim. A concept has no testimonials: a possible user quote is marked «сценарий».
 
-Структура выше задаёт смысловые блоки. Схемы «до / после» и «3 шага» — примеры: выбирай формы по реальному сценарию, сохраняя минимум две схемы на лендинг. Не копируй сценарий с заменой названий.
+The structure above defines meaning blocks. The "before / after" and "3 steps" diagrams are examples: choose forms that fit the real scenario, keeping at least two diagrams per landing page. Do not copy a scenario with names swapped.
 
-### Главная (index.html)
+### Home page (index.html)
 
-Hero с идеей пользователя одной фразой → «Коротко» (3–5 строк: что искали, к чему пришли, что рекомендуем) → 3 карточки (миниатюра, название, positioning, ключевая польза, главный риск) → таблица сравнения по одинаковым полям + полоски-оценки 1–5 по 4–5 критериям (польза, простота запуска, отличие от аналогов, риск, стоимость) → матрица 2×2 трёх предложений → рекомендация → лучшие практики → подвал с источниками.
+Hero with the user's idea in one sentence → «Коротко» (3–5 lines: what we looked for, what we arrived at, what we recommend) → 3 cards (thumbnail, name, positioning, key benefit, main risk) → a comparison table on the same fields + 1–5 score bars on 4–5 criteria (benefit, ease of launch, difference from analogues, risk, cost) → a 2×2 matrix of the three offers → recommendation → best practices → footer with sources.
 
-На главной добавь таблицу различий и объяснение каждой пары по `SKILL.md` §3а. Оценки 1–5 её не заменяют. При меньшем числе прошедших вариантов применяй исключение §3а ко всей структуре сайта.
+On the home page add the difference table and an explanation of each pair per `SKILL.md` §3a. The 1–5 scores do not replace it. If fewer options passed, apply the §3a exception to the whole site structure.
 
-## 3. Схемы (inline SVG)
+## 3. Diagrams (inline SVG)
 
-Типы — выбери 2–3 на лендинг, не повторяй одинаковый набор на всех трёх:
+Types — choose 2–3 per landing page; do not repeat the same set on all three:
 
-- **3 шага**: круг-иконка + глагол + результат, стрелки между шагами; на телефоне — вертикально (две версии SVG или flex с поворотом стрелок).
-- **До / после**: две колонки с одинаковыми строками (время, шаги, эмоция); «до» серым, «после» акцентом.
-- **Таймлиния дня / пути**: горизонтальная линия с 4–6 точками, точки участия продукта — акцентом.
-- **Экосистема**: продукт в центре, 3–6 узлов вокруг, подписанные стрелки-глаголы, без пересечений.
-- **Матрица 2×2**: оси — главное отличие из positioning; наш вариант акцентом, альтернативы серым.
-- **Раскадровка**: 3 AI-кадра в ряд с номерами и подписями (на телефоне — столбиком).
+- **3 steps**: icon circle + verb + result, arrows between steps; vertical on phones (two SVG versions, or flex with rotated arrows).
+- **Before / after**: two columns with identical rows (time, steps, emotion); "before" in gray, "after" in the accent.
+- **Day / journey timeline**: a horizontal line with 4–6 points; the points where the product is involved are in the accent.
+- **Ecosystem**: product in the center, 3–6 nodes around it, labeled verb arrows, no crossings.
+- **2×2 matrix**: axes — the main difference from positioning; our option in the accent, alternatives in gray.
+- **Storyboard**: 3 AI frames in a row with numbers and captions (stacked on phones).
 
-Правила читаемости:
+Legibility rules:
 
-- Не больше 7 элементов, простые формы (круги, скруглённые прямоугольники), подписи прямо на схеме, без легенд.
-- Цвета только через CSS-переменные (`fill="var(--accent)"`, `var(--muted)`, `var(--line)`, `var(--text)`), чтобы схема работала в тёмной теме.
-- `viewBox` + `width:100%`; текст в SVG не меньше 14px при ширине 360px — если не помещается, перенеси подписи в HTML под схемой.
-- Широкая и узкая версии: классы `only-wide` / `only-narrow` и CSS с той же специфичностью, что у общего правила, иначе `.diagram svg { display:block }` покажет обе: `.diagram svg.only-wide { display:none }`, `.diagram svg.only-narrow { display:block }` и наоборот в `@media (min-width:720px)`. Схема с выносками справа (часы, устройство) в узкой версии — подписи списком под рисунком.
-- Проверка: в iframe шириной 375px у видимых `svg text` высота ≥ 13px и нет пересечений боксов подписей (getBoundingClientRect).
-- `role="img"` и `aria-label` с сутью схемы.
-- Геометрию проверь: углы циферблатов, доли секторов, совпадение подписей с элементами.
+- No more than 7 elements, simple shapes (circles, rounded rectangles), labels directly on the diagram, no legends.
+- Colors only via CSS variables (`fill="var(--accent)"`, `var(--muted)`, `var(--line)`, `var(--text)`) so the diagram works in the dark theme.
+- `viewBox` + `width:100%`; SVG text at least 14px at 360px width — if it does not fit, move the labels into HTML below the diagram.
+- Wide and narrow versions: classes `only-wide` / `only-narrow` and CSS with the same specificity as the general rule, otherwise `.diagram svg { display:block }` shows both: `.diagram svg.only-wide { display:none }`, `.diagram svg.only-narrow { display:block }` and the reverse in `@media (min-width:720px)`. A diagram with callouts on the right (a watch, a device) — in the narrow version, put the labels as a list below the drawing.
+- Check: in a 375px-wide iframe, visible `svg text` has height ≥ 13px and label boxes do not overlap (getBoundingClientRect).
+- `role="img"` and an `aria-label` with the gist of the diagram.
+- Check the geometry: clock-face angles, sector proportions, labels matching their elements.
 
-## 4. AI-иллюстрации (Codex, `gen_images.py`)
+## 4. AI illustrations (Codex, `gen_images.py`)
 
-Набор: на каждый лендинг **hero (16:9)** + **2 кадра сценария (4:3)**; на главную картинки не генерируются — карточки используют hero лендингов. Итого 9 картинок, именование: `offer-N-hero`, `offer-N-scene-1`, `offer-N-scene-2`.
+Set: for each landing page a **hero (16:9)** + **2 scenario frames (4:3)**; no images are generated for the home page — cards use the landing heroes. 9 images total, named `offer-N-hero`, `offer-N-scene-1`, `offer-N-scene-2`.
 
-**Style block** — один на весь концепт, на английском, 40–80 слов:
-- техника: flat editorial illustration / soft vector / gouache — одна на серию;
-- палитра: 3–5 названных цветов, совпадающих с CSS-токенами сайта (фон, текст, три акцента);
-- свет, фактура, настроение одним словом; много пустого места, светлый однотонный фон;
-- персонажи описаны один раз (возраст, причёска, одежда) и повторяются дословно в каждой сцене.
+**Style block** — one for the whole concept, in English, 40–80 words:
+- technique: flat editorial illustration / soft vector / gouache — one per series;
+- palette: 3–5 named colors matching the site's CSS tokens (background, text, three accents);
+- light, texture, mood in one word; plenty of empty space, a light solid background;
+- characters described once (age, hairstyle, clothing) and repeated verbatim in every scene.
 
-**Сцена** — один абзац 40–90 слов на английском: кто, где, что делает, ключевой предмет продукта крупно, ракурс. Одна мысль, один фокус, место под текст сбоку для hero. Сюжет берётся из job story и раскадровки — картинка объясняет смысл секции, а не украшает.
+**Scene** — one paragraph of 40–90 words in English: who, where, what they do, the product's key object in close-up, camera angle. One idea, one focus, room for text at the side for the hero. The plot comes from the job story and the storyboard — the image explains the section's meaning, it does not decorate.
 
-Общий стиль объединяет серию, но не сюжеты: у каждого предложения свои действие, ключевой объект и композиция, показывающие отличительную механику. Смена цвета или одежды не подтверждает различие. Проверь готовые изображения вместе с подписями по `SKILL.md` §3а. Если картинка не передаёт механику, исправь её в пределах лимита перегенерации или замени объясняющей схемой.
+The shared style unites the series, not the plots: each offer has its own action, key object and composition showing its distinctive mechanic. A change of color or clothing does not confirm a difference. Check finished images together with their captions per `SKILL.md` §3a. If an image does not convey the mechanic, fix it within the regeneration limit or replace it with an explanatory diagram.
 
-Для крупных планов рук ребёнка явно пиши «small child-sized hands, short slender fingers» — иначе модель рисует взрослые руки.
+For close-ups of a child's hands, explicitly write "small child-sized hands, short slender fingers" — otherwise the model draws adult hands.
 
-**Не делать:** текст, буквы, цифры на циферблатах и экранах, логотипы, бренды реальных устройств (вместо «Яндекс Станция» — «a small smart speaker»), фотореализм, стоковые «счастливые люди с ноутбуком», лишние объекты. Подписи, цифры и интерфейс добавляются в HTML/SVG поверх или рядом.
+**Don't:** text, letters, numbers on clock faces and screens, logos, brands of real devices (instead of «Яндекс Станция» — "a small smart speaker"), photorealism, stock "happy people with a laptop", extra objects. Labels, numbers and interface are added in HTML/SVG on top or alongside.
 
-В HTML: `<img src="img/offer-1-hero.jpg" alt="…смысл кадра…" loading="lazy" width height>`; у hero `loading` не ставить. Если картинка не сгенерировалась — на её месте схема или блок с акцентным фоном, а не битая ссылка.
+In HTML: `<img src="img/offer-1-hero.jpg" alt="…meaning of the frame…" loading="lazy" width height>`; do not set `loading` on the hero. If an image failed to generate, put a diagram or an accent-background block in its place, not a broken link.
 
-## 5. Визуальный стиль сайта
+## 5. Site visual style
 
-- Минимализм: один шрифт (системный стек), нейтральная палитра + свой акцент у каждого предложения, много воздуха, без декоративных теней, градиентов и анимаций.
-- Цвета — переменные в `:root`, тёмная тема через `prefers-color-scheme`.
-- Ширина контента до ~1080px, по бокам 16px на телефоне, без горизонтальной прокрутки (широкие таблицы — в обёртке с `overflow-x:auto`).
-- Чистый HTML + CSS без сборки; открывается двойным кликом; все ссылки относительные.
+- Minimalism: one font (system stack), a neutral palette + its own accent for each offer, plenty of whitespace, no decorative shadows, gradients or animations.
+- Colors — variables in `:root`, dark theme via `prefers-color-scheme`.
+- Content width up to ~1080px, 16px side gutters on phones, no horizontal scroll (wide tables in a wrapper with `overflow-x:auto`).
+- Plain HTML + CSS with no build step; opens with a double click; all links relative.

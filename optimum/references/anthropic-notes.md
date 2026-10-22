@@ -1,155 +1,155 @@
-# Экономная и эффективная работа агентов Claude (по официальным материалам Anthropic)
+# Cost-efficient and effective work with Claude agents (per official Anthropic materials)
 
-Собрано 2026-10-15. Ссылки в квадратных скобках ведут к разделу 6. Цифры и формулировки взяты из источников. Где Anthropic прямо говорит «измерьте на своих данных», это отмечено.
+Compiled 2026-10-15. References in square brackets point to section 6. Figures and wording come from the sources. Where Anthropic explicitly says "measure on your own data", this is noted.
 
-## 1. Ключевые принципы
+## 1. Key principles
 
-1. **Начинайте с самого простого решения.** Сложность добавляйте, только когда она окупается. Workflow (фиксированный путь в коде) дешевле и предсказуемее агента. Агент нужен, когда число шагов заранее неизвестно [S1].
-2. **Контекст — главный ресурс.** По мере заполнения окна качество падает (context rot). Цель — «наименьший набор токенов с высоким сигналом» [S3, S5].
-3. **В мульти-агентных системах токены быстро растут.** Агент тратит примерно в 4 раза больше токенов, чем чат, мульти-агентная система — примерно в 15 раз. На BrowseComp объём токенов объясняет 80% разброса качества. Такая схема окупается только на ценных задачах, которые хорошо распараллеливаются [S2].
-4. **Мульти-агентность плохо подходит для связанных задач.** Это задачи с общим контекстом и множеством зависимостей, в том числе «большинство задач кодинга» [S2]. Замеры Anthropic: для одной зависимой цепочки или работы, которая помещается в одно окно, одна модель-оркестратор на пониженном effort «выигрывала во всех измеренных случаях» [S8].
-5. **Делегирование окупается в двух случаях:** рутинная работа с длинным хвостом стоимости и объём, который не помещается в одно окно контекста [S8].
-6. **Сначала подбирайте effort, потом меняйте модель.** «Tuning effort is often a better lever than switching models» [S7]. Вторую модель добавляйте, только если связка обходит всю кривую «качество/цена» одной модели [S8].
-7. **Effort влияет на все выходные токены:** размышления, текст и вызовы инструментов. При низком effort вызовов меньше и они короче. `low` прямо рекомендован для простых задач и субагентов [S9]. Для Haiku-субагентов: medium; low — узкий вопрос (1 вопрос, ≤10 вызовов).
-8. **Субагент нужен, чтобы шум не попадал в основной контекст.** Он работает в отдельном окне и возвращает только финальное сообщение. Anthropic ориентирует на сжатую сводку примерно в 1–2 тыс. токенов [S3, S10, S14].
-9. **Промпт делегирования должен содержать:** цель, формат ответа, подсказки по инструментам и источникам, границы задачи. Расплывчатые промпты ведут к дублированию поиска и пропускам [S2, S13].
-10. **Усилия масштабируйте под сложность.** Простой факт: 1 агент и 3–10 вызовов. Сравнение: 2–4 субагента по 10–15 вызовов. Сложное исследование: больше 10 субагентов с чётко разделёнными зонами [S2].
-11. **Независимые вызовы запускайте параллельно.** Ведущий агент запускает 3–5 субагентов, каждый субагент — 3 и более инструментов. Это сократило время исследования до 90% [S2].
-12. **У агента должна быть исполняемая проверка:** тесты, сборка, линтер, скриншот. «Claude stops when the work looks done.» Требуйте доказательства, а не заявления об успехе [S5].
-13. **Обязательное — в хуки, редкое — в скиллы, CLAUDE.md держите коротким.** Хуки детерминированы. Скиллы загружаются по требованию. CLAUDE.md занимает контекст в каждой сессии, рекомендуемый размер — до 200 строк [S5, S6, S14].
-14. **Progressive disclosure.** На старте видны только `name` и `description` скилла, тело SKILL.md загружается при вызове, остальные файлы — по мере надобности. Скрипты выполняются, не попадая в контекст [S11].
-15. **Данные загружайте по требованию (just-in-time).** Храните пути и запросы, а не содержимое. Фильтруйте данные в коде или хуке до того, как они попадут к модели: в примере Anthropic расход упал с 150 тыс. до 2 тыс. токенов, то есть на 98.7% [S3, S12, S6].
-16. **Инструменты — это интерфейс для агента (ACI).** Нужны немногие продуманные инструменты, пагинация и фильтры, `response_format` со значениями concise или detailed, понятные ошибки. В Claude Code ответ инструмента по умолчанию ограничен 25 тыс. токенов [S1, S4].
-17. **Prompt caching.** Сначала статичные части в порядке tools → system → messages. Любое изменение префикса сбрасывает кэш. TTL — 5 минут (запись ×1.25) или 1 час (запись ×2). Чтение стоит 0.1× базовой цены (0.05× на Opus 5.5 и Sonnet 5.5, 0.025× на Fable 5.1). Batch API даёт скидку 50% [S15, S16].
-18. **Форк дешевле свежего субагента**, если ему нужен тот же контекст: он переиспользует prompt cache родителя. Свежий субагент начинает с нового кэша [S10].
-19. **Чистите контекст.** Используйте `/clear` между несвязанными задачами. Если поправки не помогли дважды, начните заново с лучшим промптом. `/compact <что сохранить>` сам по себе дорогой запрос, а `/clear` бесплатен [S5, S6].
-20. **Оценки начинайте с малого:** 20–50 реальных задач. Оценивайте результат, а не путь. Предпочитайте детерминированные грейдеры, LLM-грейдеры используйте там, где без них нельзя, людей — для калибровки [S2, S17].
-21. **Кэш в Claude Code.** Субагенты работают на 5-минутном TTL. Главный разговор: 1 час на подписке в пределах плана, 5 минут при usage credits или API-ключе. Ожидание фоновых агентов дольше TTL означает следующий ход оркестратора без кэша [S19].
-22. **Цена Fable.** За токен примерно ×2.5 к Opus ($10/$50 против $4/$20), за решённую задачу примерно ×5: Opus 5.5 на medium примерно равен Fable 5.1 на high по качеству на SWE-bench Pro, $0.22 против $1.19. В зависимости от плана/тарифа Fable может списываться из usage credits, а не из лимитов плана [S8, S18].
-23. **Два прохода.** Пакет задач прогнать на дешёвом уровне, упавшие повторить на старшем effort или модели: по Anthropic примерно −40 % стоимости при том же качестве. Модель выбирать по самым трудным ~10 % задач, а не по медиане. Haiku не стоит давать контекст больше 100K токенов: за токен выходит дороже [S8].
-24. **Fork и встроенные субагенты.** Fork наследует контекст разговора, его `model` и `effort` игнорируются (источник: описание инструмента Agent). Встроенный Explore при сессии на Fable работает на Opus на Anthropic API/подписке (на Bedrock/Vertex/Foundry — модель сессии). Explore и Plan не получают CLAUDE.md [S10].
+1. **Start with the simplest solution.** Add complexity only when it pays off. A workflow (a fixed path in code) is cheaper and more predictable than an agent. An agent is needed when the number of steps is not known in advance [S1].
+2. **Context is the main resource.** As the window fills, quality drops (context rot). The goal is "the smallest set of high-signal tokens" [S3, S5].
+3. **Tokens grow fast in multi-agent systems.** An agent spends about 4× the tokens of chat, a multi-agent system about 15×. On BrowseComp, token volume explains 80% of the variance in quality. Such a setup pays off only on valuable tasks that parallelize well [S2].
+4. **Multi-agent setups fit coupled tasks poorly.** These are tasks with shared context and many dependencies, including "most coding tasks" [S2]. Anthropic's measurements: for a single dependent chain or work that fits in one window, a single orchestrator model at reduced effort "won in every measured case" [S8].
+5. **Delegation pays off in two cases:** routine work with a long cost tail, and volume that does not fit in one context window [S8].
+6. **Tune effort first, then switch models.** «Tuning effort is often a better lever than switching models» [S7]. Add a second model only if the pairing beats the single model's entire quality/cost curve [S8].
+7. **Effort affects all output tokens:** thinking, text and tool calls. At low effort there are fewer, shorter calls. `low` is explicitly recommended for simple tasks and subagents [S9]. For Haiku subagents: medium; low — narrow question (1 question, ≤10 calls).
+8. **A subagent exists to keep noise out of the main context.** It works in a separate window and returns only the final message. Anthropic suggests a condensed summary of about 1–2K tokens [S3, S10, S14].
+9. **A delegation prompt must contain:** the goal, the answer format, hints on tools and sources, task boundaries. Vague prompts lead to duplicated searches and gaps [S2, S13].
+10. **Scale effort to complexity.** Simple fact: 1 agent and 3–10 calls. Comparison: 2–4 subagents with 10–15 calls each. Complex research: more than 10 subagents with clearly separated zones [S2].
+11. **Run independent calls in parallel.** The lead agent launches 3–5 subagents, each subagent uses 3 or more tools. This cut research time by up to 90% [S2].
+12. **The agent must have an executable check:** tests, build, linter, screenshot. «Claude stops when the work looks done.» Demand evidence, not claims of success [S5].
+13. **Mandatory things go into hooks, rare ones into skills; keep CLAUDE.md short.** Hooks are deterministic. Skills load on demand. CLAUDE.md takes context in every session; recommended size is up to 200 lines [S5, S6, S14].
+14. **Progressive disclosure.** At startup only the skill's `name` and `description` are visible; the SKILL.md body loads on invocation, other files as needed. Scripts execute without entering the context [S11].
+15. **Load data on demand (just-in-time).** Store paths and queries, not content. Filter data in code or a hook before it reaches the model: in Anthropic's example usage dropped from 150K to 2K tokens, i.e., by 98.7% [S3, S12, S6].
+16. **Tools are the agent's interface (ACI).** You need a few well-designed tools, pagination and filters, `response_format` with concise or detailed values, clear errors. In Claude Code a tool response is capped at 25K tokens by default [S1, S4].
+17. **Prompt caching.** Static parts first, in the order tools → system → messages. Any change to the prefix invalidates the cache. TTL — 5 minutes (write ×1.25) or 1 hour (write ×2). Reads cost 0.1× base price (0.05× on Opus 5.5 and Sonnet 5.5, 0.025× on Fable 5.1). Batch API gives a 50% discount [S15, S16].
+18. **A fork is cheaper than a fresh subagent** if it needs the same context: it reuses the parent's prompt cache. A fresh subagent starts with a new cache [S10].
+19. **Clean the context.** Use `/clear` between unrelated tasks. If corrections failed twice, start over with a better prompt. `/compact <what to keep>` is itself an expensive request, while `/clear` is free [S5, S6].
+20. **Start evals small:** 20–50 real tasks. Grade the outcome, not the path. Prefer deterministic graders, use LLM graders where unavoidable, humans for calibration [S2, S17].
+21. **Cache in Claude Code.** Subagents run on a 5-minute TTL. Main conversation: 1 hour on a subscription within the plan, 5 minutes with usage credits or an API key. Waiting for background agents longer than the TTL means the orchestrator's next turn runs without cache [S19].
+22. **Fable pricing.** Per token about ×2.5 Opus ($10/$50 vs $4/$20), per solved task about ×5: Opus 5.5 at medium roughly equals Fable 5.1 at high in quality on SWE-bench Pro, $0.22 vs $1.19. Depending on the plan/tier, Fable may be billed from usage credits rather than plan limits [S8, S18].
+23. **Two passes.** Run a batch of tasks at a cheap level, retry the failed ones at a higher effort or model: per Anthropic about −40 % cost at the same quality. Choose the model by the hardest ~10 % of tasks, not the median. Don't give Haiku context over 100K tokens: it gets more expensive per token [S8].
+24. **Fork and built-in subagents.** A fork inherits the conversation context; its `model` and `effort` are ignored (source: the Agent tool description). The built-in Explore under a Fable session runs on Opus on the Anthropic API/subscription (on Bedrock/Vertex/Foundry — the session model). Explore and Plan do not get CLAUDE.md [S10].
 
-## 2. Тип задачи → модель и effort
+## 2. Task type → model and effort
 
-Актуальная линейка (Claude API) [S16, S7]:
+Current lineup (Claude API) [S16, S7]:
 
-| Модель | ID | Цена вход / выход за MTok | Effort по умолчанию | Официальное назначение |
+| Model | ID | Input / output price per MTok | Default effort | Official purpose |
 |---|---|---|---|---|
 | Claude Fable 5.1 | `claude-fable-5-1` | $10 / $50 | high | «demanding reasoning and long-horizon agentic work» |
 | Claude Opus 5.5 | `claude-opus-5-5` | $4 / $20 | medium | «long-running agentic coding and knowledge work» |
-| Claude Sonnet 5.5 | `claude-sonnet-5-5` | $2 / $10 | high в API; в Claude Code — medium | «best combination of speed and intelligence» |
-| Claude Haiku 5.5 | `claude-haiku-5-5` | от $0.10 / от $0.50 | medium | «high-volume, latency-sensitive tasks such as classification, extraction, and routing»; в матрице выбора — «sub-agent tasks» |
+| Claude Sonnet 5.5 | `claude-sonnet-5-5` | $2 / $10 | high in the API; medium in Claude Code | «best combination of speed and intelligence» |
+| Claude Haiku 5.5 | `claude-haiku-5-5` | from $0.10 / from $0.50 | medium | «high-volume, latency-sensitive tasks such as classification, extraction, and routing»; in the selection matrix — «sub-agent tasks» |
 
-У всех моделей окно 1M и вывод до 128K. На Opus 5.5 и Fable 5.1 мышление включено всегда. Opus 5.5 — рекомендуемая стартовая модель: «Most workloads start with Claude Opus 5.5» [S7]. Алиасы Claude Code `haiku`/`sonnet`/`opus` на Anthropic API указывают на версии 5.5, `fable` — на Fable 5.1, а `opusplan` использует Opus в режиме планирования и Sonnet при выполнении [S18].
+All models have a 1M window and up to 128K output. On Opus 5.5 and Fable 5.1 thinking is always on. Opus 5.5 is the recommended starting model: «Most workloads start with Claude Opus 5.5» [S7]. Claude Code aliases `haiku`/`sonnet`/`opus` on the Anthropic API point to the 5.5 versions, `fable` to Fable 5.1, and `opusplan` uses Opus in plan mode and Sonnet during execution [S18].
 
-Описания уровней effort в Claude Code [S18]:
-- **low** — быстрые итерации с ревью каждого шага;
-- **medium** — повседневная работа с ясным объёмом;
-- **high** — важна верификация, вероятны краевые случаи (баг в существующем коде);
-- **xhigh** — глубже, но дороже;
-- **max** — трудные автономные задачи, «prone to overthinking».
+Effort level descriptions in Claude Code [S18]:
+- **low** — fast iterations with review of each step;
+- **medium** — everyday work with a clear scope;
+- **high** — verification matters, edge cases likely (a bug in existing code);
+- **xhigh** — deeper but more expensive;
+- **max** — hard autonomous tasks, «prone to overthinking».
 
-Таблица ниже — вывод из официальных формулировок, а не прямая таблица Anthropic. Anthropic везде требует проверять выбор на своих задачах.
+The table below is inferred from official wording, not a direct Anthropic table. Anthropic everywhere requires validating the choice on your own tasks.
 
-| Тип задачи | Рекомендация | Обоснование |
+| Task type | Recommendation | Justification |
 |---|---|---|
-| Поиск по коду, разведка | Субагент Explore (read-only) или свой субагент с `model: haiku` и effort medium; low — узкий вопрос (1 вопрос, ≤10 вызовов) | Документация прямо предлагает переопределить Explore на `model: haiku`, а для простых задач субагентов задавать `haiku` [S10, S6]. `low` — «such as subagents» [S9]. На `low` в длинных промптах Haiku может пропустить поиск или проверку [S9] |
-| Механическая генерация данных, массовые проверяемые выводы | Haiku 5.5, effort medium; low — узкий вопрос (1 вопрос, ≤10 вызовов); для API — Batch (−50%) | «Haiku 5.5 for high-volume, checkable outputs», но сначала измерить [S8]. Batch [S16]. Схема fan-out: `claude -p` по списку файлов [S5] |
-| Написание текстов, контента | Sonnet 5.5, effort medium/high | Матрица: Sonnet — «content creation», «code generation, data analysis» [S7]. Длину ответа задавайте промптом: effort её надёжно не регулирует [S9] |
-| Обычный код с ясным ТЗ | Sonnet 5.5 (medium) или Opus 5.5 (medium) | «Sonnet handles most coding tasks well and costs less than Opus» [S6]. У Sonnet 5.5 для хорошо специфицированных агентных задач — medium, для трудных — high [S9] |
-| Сложный код, алгоритмы, отладка | Opus 5.5, effort high/xhigh; если на xhigh/max не хватает — Fable 5.1 | high — для багов в существующем коде [S18]. xhigh — для задач длиннее 30 минут [S9]. Эскалация на Fable [S7]. Opus 5.5 обходится примерно в 1/5 стоимости Fable 5.1 за решённую задачу SWE-bench Pro при статистически сходном качестве [S8] |
-| Архитектура, план | Opus 5.5 (или `opusplan`), режим планирования; Fable 5.1 для многочасовых задач | «Reserve Opus for complex architectural decisions or multi-step reasoning» [S6]. `opusplan` [S18]. Матрица выбора [S7] |
-| Ревью кода | Отдельный субагент со свежим контекстом и read-only инструментами; `/code-review`; модель inherit или sonnet, для security — opus | Свежий контекст не предвзят к своему коду [S5, S13]. Пример security-reviewer с `model: opus` [S5]. Ревьюеру разрешайте помечать только проблемы корректности и требований [S5] |
-| Проверка фактов | Код или детерминированный грейдер, где возможно; иначе один LLM-вызов с рубрикой (оценка 0–1 и pass/fail) | Рубрика и один промпт дали самые стабильные и близкие к человеку оценки [S2]. Иерархия грейдеров [S17] |
-| Суммаризация, классификация, извлечение | Haiku 5.5, effort medium; low — узкий вопрос (1 вопрос, ≤10 вызовов) | Прямое назначение Haiku [S16]. Компакция: сначала настраивать на полноту, потом на точность [S3] |
+| Code search, reconnaissance | Explore subagent (read-only) or your own subagent with `model: haiku` and effort medium; low — narrow question (1 question, ≤10 calls) | The docs explicitly suggest overriding Explore to `model: haiku`, and setting `haiku` for simple subagent tasks [S10, S6]. `low` — «such as subagents» [S9]. On `low` with long prompts Haiku may skip a search or check [S9] |
+| Mechanical data generation, bulk verifiable outputs | Haiku 5.5, effort medium; low — narrow question (1 question, ≤10 calls); for the API — Batch (−50%) | «Haiku 5.5 for high-volume, checkable outputs», but measure first [S8]. Batch [S16]. Fan-out pattern: `claude -p` over a list of files [S5] |
+| Writing texts, content | Sonnet 5.5, effort medium/high | Matrix: Sonnet — «content creation», «code generation, data analysis» [S7]. Set the answer length in the prompt: effort does not reliably control it [S9] |
+| Ordinary code with a clear spec | Sonnet 5.5 (medium) or Opus 5.5 (medium) | «Sonnet handles most coding tasks well and costs less than Opus» [S6]. For Sonnet 5.5, well-specified agentic tasks — medium, hard ones — high [S9] |
+| Complex code, algorithms, debugging | Opus 5.5, effort high/xhigh; if xhigh/max is not enough — Fable 5.1 | high — for bugs in existing code [S18]. xhigh — for tasks longer than 30 minutes [S9]. Escalation to Fable [S7]. Opus 5.5 costs about 1/5 of Fable 5.1 per solved SWE-bench Pro task at statistically similar quality [S8] |
+| Architecture, plan | Opus 5.5 (or `opusplan`), plan mode; Fable 5.1 for multi-hour tasks | «Reserve Opus for complex architectural decisions or multi-step reasoning» [S6]. `opusplan` [S18]. Selection matrix [S7] |
+| Code review | A separate subagent with fresh context and read-only tools; `/code-review`; model inherit or sonnet, opus for security | Fresh context is not biased toward its own code [S5, S13]. Example security-reviewer with `model: opus` [S5]. Allow the reviewer to flag only correctness and requirements issues [S5] |
+| Fact-checking | Code or a deterministic grader where possible; otherwise one LLM call with a rubric (score 0–1 and pass/fail) | A rubric and a single prompt gave the most stable and most human-like scores [S2]. Grader hierarchy [S17] |
+| Summarization, classification, extraction | Haiku 5.5, effort medium; low — narrow question (1 question, ≤10 calls) | Haiku's direct purpose [S16]. Compaction: tune for recall first, then precision [S3] |
 
-## 3. Правила делегирования субагентам
+## 3. Rules for delegating to subagents
 
-**Когда делегировать** [S10, S13, S2, S8]:
-- Побочная задача создаст много вывода, который потом не понадобится: поиск по десяткам файлов, логи, тесты, документация.
-- Есть несколько независимых направлений, например исследование вширь. Явно пишите «можно параллельно».
-- Нужен свежий взгляд: ревью или верификация.
-- Работа больше одного окна контекста: делите её на части.
-- Нужны ограничения: read-only инструменты, отдельная модель или effort.
+**When to delegate** [S10, S13, S2, S8]:
+- A side task will produce lots of output that won't be needed later: searching dozens of files, logs, tests, documentation.
+- There are several independent directions, e.g., breadth-first research. Explicitly write "can run in parallel".
+- A fresh look is needed: review or verification.
+- The work exceeds one context window: split it into parts.
+- Restrictions are needed: read-only tools, a separate model or effort.
 
-**Когда не делегировать** [S10, S13, S8]:
-- Мелкая задача: накладные расходы больше пользы. Если дифф описывается одним предложением, даже план не нужен [S5].
-- Последовательная цепочка с зависимостями или фазы с большим общим контекстом.
-- Правки одного файла несколькими агентами (конфликты).
-- Итеративная работа с частыми уточнениями или когда важна задержка: субагент стартует с нуля.
-- Агентам нужно общаться между собой: субагенты этого не умеют, для этого есть agent teams (около 7 раз больше токенов в режиме плана) [S6].
+**When not to delegate** [S10, S13, S8]:
+- A small task: overhead exceeds the benefit. If the diff fits in one sentence, even a plan is unnecessary [S5].
+- A sequential chain with dependencies, or phases with a large shared context.
+- Edits to one file by several agents (conflicts).
+- Iterative work with frequent clarifications, or when latency matters: a subagent starts from scratch.
+- Agents need to talk to each other: subagents can't, that's what agent teams are for (about 7× more tokens in plan mode) [S6].
 
-**Что писать в промпте** [S2, S13, S5]:
-- Цель и критерий «готово».
-- Границы: что входит в задачу, что не входит, какие файлы и папки.
-- Где искать: инструменты, источники, существующие паттерны.
-- Бюджет усилий: примерное число вызовов или файлов по шкале из п.1.10.
-- Точный формат ответа.
-- Абсолютные пути и конкретные имена — это предотвращает целый класс ошибок [S1].
+**What to put in the prompt** [S2, S13, S5]:
+- The goal and the "done" criterion.
+- Boundaries: what is in scope, what is not, which files and folders.
+- Where to look: tools, sources, existing patterns.
+- Effort budget: approximate number of calls or files per the scale in item 1.10.
+- The exact answer format.
+- Absolute paths and concrete names — this prevents a whole class of errors [S1].
 
-**Как сократить возвращаемый контекст:**
-- Просите сводку или выводы, а не сырьё: таблицу, список путей со строками, вердикт. Ориентир — 1–2 тыс. токенов [S3].
-- Большие артефакты пусть субагент пишет в файл и возвращает только ссылку [S2].
-- Много субагентов с подробными отчётами переполнят основной контекст [S10].
-- Длинный вывод команд фильтруйте хуками или скриптами (только FAIL/ERROR) [S6].
+**How to reduce returned context:**
+- Ask for a summary or conclusions, not raw material: a table, a list of paths with lines, a verdict. Guideline — 1–2K tokens [S3].
+- Have the subagent write large artifacts to a file and return only a link [S2].
+- Many subagents with detailed reports will overflow the main context [S10].
+- Filter long command output with hooks or scripts (FAIL/ERROR only) [S6].
 
-**Параллелизм:**
-- Запускайте независимые субагенты одним сообщением или в фоне.
-- По умолчанию лимит — 20 одновременных субагентов и 3 уровня вложенности [S10].
-- Для правок кода в параллели используйте `isolation: worktree` или отдельные сессии в worktree [S5, S10].
-- Массовые миграции: `/batch` (5–30 субагентов в своих worktree) или цикл `claude -p` с `--allowedTools`. Сначала прогоните на 2–3 файлах и доработайте промпт [S5].
+**Parallelism:**
+- Launch independent subagents in one message or in the background.
+- Default limit — 20 concurrent subagents and 3 nesting levels [S10].
+- For parallel code edits use `isolation: worktree` or separate sessions in worktrees [S5, S10].
+- Bulk migrations: `/batch` (5–30 subagents in their own worktrees) or a `claude -p` loop with `--allowedTools`. First run on 2–3 files and refine the prompt [S5].
 
-**Модель субагента** [S10, S18]:
-- Порядок выбора: параметр вызова → `model` во frontmatter (`inherit` — модель сессии) → `CLAUDE_CODE_SUBAGENT_MODEL` → модель основной сессии.
-- `/model` переключает и всех субагентов с `inherit`. Чтобы субагент остался на дешёвой модели, задайте `model` явно.
-- У субагента может быть свой `effort`, `maxTurns` и ограниченный `tools`.
+**Subagent model** [S10, S18]:
+- Resolution order: call parameter → `model` in frontmatter (`inherit` — session model) → `CLAUDE_CODE_SUBAGENT_MODEL` → main session model.
+- `/model` also switches all subagents with `inherit`. To keep a subagent on a cheap model, set `model` explicitly.
+- A subagent can have its own `effort`, `maxTurns` and restricted `tools`.
 
-## 4. Контроль качества при экономии
+## 4. Quality control while saving
 
-От дешёвых и надёжных проверок к дорогим [S5, S17]:
-1. **Детерминированные проверки:** тесты, сборка, типы, линтер, сравнение с эталоном. Быстрые, дешёвые, воспроизводимые [S17]. Сначала напишите падающий тест, потом исправление [S5].
-2. **Жёсткие ворота:** Stop-хук не даёт завершить ход, пока проверка не пройдена. Условие `/goal` перепроверяет его каждый ход [S5].
-3. **Плагины code intelligence** (LSP) для типизированных языков: ошибки типов видны сразу после правки, без компиляции, и меньше лишних чтений файлов [S6].
-4. **Доказательства вместо заявлений:** вывод тестов, команда и её результат, скриншот [S5].
-5. **Независимый ревьюер-субагент** со свежим контекстом видит только дифф и критерии. Ограничьте его проблемами корректности и требований, иначе начнётся переусложнение [S5].
-6. **LLM-as-judge:** один вызов, рубрика, оценка 0–1 плюс pass/fail. Калибруйте по людям и читайте транскрипты [S2, S17].
-7. **Метрики оценки.** pass@k — достаточно одного успеха. pass^k — нужна стабильность: при 75% успеха на попытку pass^3 ≈ 42% [S17].
-8. **Если понижаете effort или модель, повторяйте оценку.** Подбирайте effort на своих данных: настройки старых моделей не переносятся [S9]. У Haiku на `low` растёт риск пропущенной проверки [S9].
+From cheap and reliable checks to expensive ones [S5, S17]:
+1. **Deterministic checks:** tests, build, types, linter, comparison with a reference. Fast, cheap, reproducible [S17]. Write a failing test first, then the fix [S5].
+2. **Hard gates:** a Stop hook prevents ending the turn until the check passes. A `/goal` condition re-checks it every turn [S5].
+3. **Code intelligence plugins** (LSP) for typed languages: type errors are visible right after an edit, without compiling, and with fewer unnecessary file reads [S6].
+4. **Evidence instead of claims:** test output, the command and its result, a screenshot [S5].
+5. **An independent reviewer subagent** with fresh context sees only the diff and the criteria. Restrict it to correctness and requirements issues, otherwise overengineering begins [S5].
+6. **LLM-as-judge:** one call, a rubric, a 0–1 score plus pass/fail. Calibrate against humans and read transcripts [S2, S17].
+7. **Eval metrics.** pass@k — one success is enough. pass^k — consistency is needed: at 75% success per attempt, pass^3 ≈ 42% [S17].
+8. **If you lower effort or model, rerun the eval.** Tune effort on your own data: settings from older models don't carry over [S9]. Haiku on `low` has a higher risk of a skipped check [S9].
 
-## 5. Анти-паттерны
+## 5. Anti-patterns
 
-- **Мульти-агентная схема для связанной задачи** или работы, которая помещается в одно окно: в 15 раз больше токенов без выигрыша [S2, S8].
-- **Субагент на мелочь** и «зоопарк» узких агентов: большинство команд останавливаются на нескольких хорошо очерченных агентах [S13].
-- **«Исследуй всё» без границ:** агент читает сотни файлов (infinite exploration) [S5].
-- **Сессия-свалка:** несвязанные задачи в одной сессии, где контекст платится на каждом ходу [S5, S6].
-- **Повторные поправки в загрязнённом контексте** вместо `/clear` и нового промпта [S5].
-- **Раздутый CLAUDE.md:** правила теряются, токены тратятся каждую сессию [S5, S14].
-- **Всё на Opus или Fable при `max` по умолчанию.** `max` даёт убывающую отдачу и склонен к лишним размышлениям [S18, S9]. Высокие счета обычно связаны с неочищенными сессиями и Opus по умолчанию [S6].
-- **Смена модели или инструментов посреди кэшированного диалога** сбрасывает кэш. Смена MCP ломает кэш только без tool search (по умолчанию он включён, и подключение MCP кэш не трогает). Смена effort не ломает кэш на API-ключе/подписке (Claude Code, модели 5.5 / Fable 5.1); на Bedrock/Vertex и в старых версиях сбрасывает [S9, S15, S19]. Возвращение после паузы длиннее TTL тоже ведёт к промаху кэша [S15, S6, S19].
-- **Подробные отчёты субагентов в основной контекст** и сырые логи вместо отфильтрованных [S10, S6].
-- **Ревьюер, обязанный найти проблемы,** и попытка исправить каждое замечание ведут к переусложнению [S5].
-- **«Выглядит готово» без проверки:** trust-then-verify gap [S5].
-- **Множество MCP-серверов, которые не используются;** когда есть CLI (`gh` и т.п.), он экономнее [S6].
-- **Связка advisor/orchestrator «на всякий случай».** В замерах Anthropic прирост часто в пределах шума, одна связка оказалась хуже одиночной модели [S8].
+- **A multi-agent setup for a coupled task** or work that fits in one window: 15× more tokens with no gain [S2, S8].
+- **A subagent for a trifle** and a "zoo" of narrow agents: most teams settle on a few well-defined agents [S13].
+- **"Explore everything" without bounds:** the agent reads hundreds of files (infinite exploration) [S5].
+- **Kitchen-sink session:** unrelated tasks in one session, where context is paid for on every turn [S5, S6].
+- **Repeated corrections in a polluted context** instead of `/clear` and a new prompt [S5].
+- **Bloated CLAUDE.md:** rules get lost, tokens are spent every session [S5, S14].
+- **Everything on Opus or Fable with `max` by default.** `max` gives diminishing returns and tends to overthink [S18, S9]. High bills usually come from uncleared sessions and Opus by default [S6].
+- **Switching model or tools mid-cached conversation** invalidates the cache. Switching MCP breaks the cache only without tool search (it is on by default, and connecting an MCP doesn't touch the cache). Switching effort doesn't break the cache on API key/subscription (Claude Code, 5.5 models / Fable 5.1); on Bedrock/Vertex and in older versions it invalidates it [S9, S15, S19]. Returning after a pause longer than the TTL also causes a cache miss [S15, S6, S19].
+- **Detailed subagent reports in the main context** and raw logs instead of filtered ones [S10, S6].
+- **A reviewer obliged to find problems,** and trying to fix every remark, lead to overengineering [S5].
+- **"Looks done" without verification:** the trust-then-verify gap [S5].
+- **Many unused MCP servers;** when a CLI exists (`gh` etc.), it is cheaper [S6].
+- **An advisor/orchestrator pairing "just in case".** In Anthropic's measurements the gain is often within noise, and one pairing was worse than the single model [S8].
 
-## 6. Источники
+## 6. Sources
 
 - S1 · Building effective agents · https://www.anthropic.com/engineering/building-effective-agents · 19.12.2024
 - S2 · How we built our multi-agent research system · https://www.anthropic.com/engineering/multi-agent-research-system · 13.06.2025
 - S3 · Effective context engineering for AI agents · https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents · 29.09.2025
 - S4 · Writing effective tools for agents — with agents · https://www.anthropic.com/engineering/writing-tools-for-agents · 11.09.2025
-- S5 · Best practices for Claude Code · https://code.claude.com/docs/en/best-practices (бывш. anthropic.com/engineering/claude-code-best-practices) · живая документация, прочитано 15.10.2026
-- S6 · Manage costs effectively (Claude Code) · https://code.claude.com/docs/en/costs · прочитано 15.10.2026
-- S7 · Choosing the right model · https://platform.claude.com/docs/en/about-claude/models/choosing-a-model · прочитано 15.10.2026
-- S8 · Optimizing for cost and intelligence · https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence · прочитано 15.10.2026
-- S9 · Effort · https://platform.claude.com/docs/en/build-with-claude/effort · прочитано 15.10.2026
-- S10 · Create custom subagents (Claude Code) · https://code.claude.com/docs/en/sub-agents · прочитано 15.10.2026
-- S11 · Equipping agents for the real world with Agent Skills · https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills · 16.10.2025 (обн. 18.12.2025)
+- S5 · Best practices for Claude Code · https://code.claude.com/docs/en/best-practices (formerly anthropic.com/engineering/claude-code-best-practices) · living documentation, read 15.10.2026
+- S6 · Manage costs effectively (Claude Code) · https://code.claude.com/docs/en/costs · read 15.10.2026
+- S7 · Choosing the right model · https://platform.claude.com/docs/en/about-claude/models/choosing-a-model · read 15.10.2026
+- S8 · Optimizing for cost and intelligence · https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence · read 15.10.2026
+- S9 · Effort · https://platform.claude.com/docs/en/build-with-claude/effort · read 15.10.2026
+- S10 · Create custom subagents (Claude Code) · https://code.claude.com/docs/en/sub-agents · read 15.10.2026
+- S11 · Equipping agents for the real world with Agent Skills · https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills · 16.10.2025 (upd. 18.12.2025)
 - S12 · Code execution with MCP · https://www.anthropic.com/engineering/code-execution-with-mcp · 04.11.2025
 - S13 · How and when to use subagents in Claude Code · https://claude.com/blog/subagents-in-claude-code · 07.04.2026
 - S14 · Steering Claude Code: CLAUDE.md, skills, hooks, subagents · https://claude.com/resources/articles/steering-claude-code-skills-hooks-rules-subagents-and-more · 18.06.2026
-- S15 · Prompt caching · https://platform.claude.com/docs/en/build-with-claude/prompt-caching · прочитано 15.10.2026
-- S16 · Models overview · https://platform.claude.com/docs/en/models/overview · прочитано 15.10.2026
+- S15 · Prompt caching · https://platform.claude.com/docs/en/build-with-claude/prompt-caching · read 15.10.2026
+- S16 · Models overview · https://platform.claude.com/docs/en/models/overview · read 15.10.2026
 - S17 · Demystifying evals for AI agents · https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents · 09.01.2026
-- S18 · Model configuration (Claude Code) · https://code.claude.com/docs/en/model-config · прочитано 15.10.2026
-- S19 · Prompt caching (Claude Code) · https://code.claude.com/docs/en/prompt-caching · прочитано 22.10.2026
+- S18 · Model configuration (Claude Code) · https://code.claude.com/docs/en/model-config · read 15.10.2026
+- S19 · Prompt caching (Claude Code) · https://code.claude.com/docs/en/prompt-caching · read 22.10.2026
